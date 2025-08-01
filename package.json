@@ -1,7 +1,7 @@
 {
-  "name": "letschatonline",
+  "name": "chatcharacters",
   "version": "1.0.0",
-  "description": "LetsChat Online - AI Character Chat Platform",
+  "description": "AI Character Chat Platform with Intelligent Memory",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,20 +9,23 @@
   },
   "dependencies": {
     "express": "^4.18.2",
+    "pg": "^8.8.0",
     "cors": "^2.8.5",
-    "pg": "^8.11.3",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.20"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+    "node": ">=18.0.0"
   },
   "keywords": [
-    "letschatonline",
     "ai",
     "chat",
-    "characters"
+    "characters",
+    "memory",
+    "conversation"
   ],
-  "author": "Steve Winfield",
+  "author": "ChatCharacters",
   "license": "MIT"
 }
