@@ -153,7 +153,8 @@ app.get('/admin', (req, res) => {
 app.get('/api/characters', async (req, res) => {
   try {
     const result = await pool.query('SELECT name, data FROM characters ORDER BY name');
-    const characters = result.rows.map(row => JSON.parse(row.data));
+    // FIX: Don't parse - data is already an object from JSONB
+    const characters = result.rows.map(row => row.data);
     res.json(characters);
   } catch (error) {
     console.error('Error fetching characters:', error);
