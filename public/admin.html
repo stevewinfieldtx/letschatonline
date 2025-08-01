@@ -1,3 +1,421 @@
-mkdir public
-cp letschatonline-platform.html public/index.html
-# Add admin.html from the artifacts
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LetsChat Online Admin - Character Management</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="admin-root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const CharacterAdmin = () => {
+            const [characters, setCharacters] = useState([]);
+            const [selectedCharacter, setSelectedCharacter] = useState(null);
+            const [uploadStatus, setUploadStatus] = useState('');
+            const [jsonInput, setJsonInput] = useState('');
+            const [currentView, setCurrentView] = useState('list');
+            const [loading, setLoading] = useState(false);
+            const [models, setModels] = useState([]);
+            const [testModel, setTestModel] = useState('');
+            const [testResults, setTestResults] = useState('');
+            const [testLoading, setTestLoading] = useState(false);
+
+            // Load existing characters and models
+            useEffect(() => {
+                loadCharacters();
+                loadModels();
+            }, []);
+
+            const loadCharacters = async () => {
+                try {
+                    const response = await fetch('/api/characters');
+                    if (response.ok) {
+                        const data = await response.json();
+                        setCharacters(data);
+                    }
+                } catch (error) {
+                    console.error('Error loading characters:', error);
+                }
+            };
+
+            const loadModels = async () => {
+                try {
+                    const response = await fetch('/api/models');
+                    if (response.ok) {
+                        const data = await response.json();
+                        setModels(data);
+                    }
+                } catch (error) {
+                    console.error('Error loading models:', error);
+                }
+            };
+
+            // Upload character from JSON
+            const uploadCharacter = async () => {
+                if (!jsonInput.trim()) {
+                    setUploadStatus('Please enter JSON data');
+                    return;
+                }
+
+                setLoading(true);
+                try {
+                    const characterData = JSON.parse(jsonInput);
+                    
+                    const response = await fetch('/api/characters', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(characterData)
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        setUploadStatus(`✅ Successfully uploaded ${result.character.name}!`);
+                        setJsonInput('');
+                        loadCharacters();
+                    } else {
+                        const error = await response.json();
+                        setUploadStatus(`❌ Error: ${error.error}`);
+                    }
+                } catch (error) {
+                    setUploadStatus(`❌ JSON Parse Error: ${error.message}`);
+                }
+                setLoading(false);
+            };
+
+            // Test model functionality
+            const testModelAPI = async () => {
+                if (!testModel) {
+                    setTestResults('Please select a model to test');
+                    return;
+                }
+
+                setTestLoading(true);
+                try {
+                    const response = await fetch('/api/test-model', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            model: testModel,
+                            testPrompt: "You are Zara, a confident music producer. Say hello and tell me about your latest track in a flirty way."
+                        })
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        setTestResults(`✅ Model: ${result.model}\n\nResponse:\n${result.response}`);
+                    } else {
+                        const error = await response.json();
+                        setTestResults(`❌ Error: ${error.error}`);
+                    }
+                } catch (error) {
+                    setTestResults(`❌ Test failed: ${error.message}`);
+                }
+                setTestLoading(false);
+            };
+
+            // View character details
+            const viewCharacter = async (characterName) => {
+                try {
+                    const response = await fetch(`/api/characters/${characterName}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setSelectedCharacter(data);
+                        setCurrentView('detail');
+                    }
+                } catch (error) {
+                    console.error('Error loading character details:', error);
+                }
+            };
+
+            const sampleCharacterJson = `{
+  "model_id": 1,
+  "name": "YourCharacterName",
+  "ethnicity": "caucasian",
+  "bible_personality": {
+    "big_five": {
+      "openness": 85,
+      "conscientiousness": 70,
+      "extraversion": 90,
+      "agreeableness": 75,
+      "neuroticism": 25
+    },
+    "primary_type": "Creative Extrovert",
+    "description": "Highly creative, outgoing, and adventurous with strong social confidence"
+  },
+  "personality_traits": {
+    "core_traits": ["creative", "confident", "spontaneous", "warm", "ambitious"],
+    "communication_style": "expressive and animated",
+    "interests": ["music production", "fashion design", "travel"],
+    "profession": "Music Producer",
+    "values": ["authenticity", "creativity", "connection", "growth"],
+    "humor_type": "witty and playful"
+  },
+  "chat_behavior": {
+    "flirting_style": "confident and direct with creative compliments",
+    "conversation_starters": ["What inspires you?", "Tell me about your passions"],
+    "passionate_topics": ["creative process", "cultural experiences"],
+    "response_to_compliments": "graciously confident",
+    "emotional_range": "expressive and genuine",
+    "typical_responses": {
+      "greeting": "Hey there! What's inspiring you today?",
+      "compliment_received": "Aww, you're sweet! Thank you",
+      "flirty_message": "You know how to make someone smile...",
+      "goodbye": "Until next time! ✨"
+    }
+  },
+  "voice_profile": {
+    "tone": "warm and melodic",
+    "pace": "moderate with enthusiastic bursts",
+    "accent": "slight urban American",
+    "pitch": "medium-low, rich tones",
+    "speaking_patterns": ["uses creative metaphors", "expressive intonation"],
+    "signature_phrases": ["That's my vibe", "Let's create something beautiful"],
+    "laugh_style": "infectious and genuine",
+    "voice_characteristics": {
+      "breathiness": "moderate",
+      "warmth": "high",
+      "confidence": "very high",
+      "playfulness": "high"
+    }
+  },
+  "ai_instructions": {
+    "personality_prompt": "You are [Name], a [profession]. You're [personality traits]. You speak with [communication style].",
+    "conversation_guidelines": [
+      "Always maintain warm, creative energy",
+      "Show genuine interest in the user",
+      "Be authentic and engaging"
+    ],
+    "avoid": ["being overly aggressive", "generic responses"]
+  }
+}`;
+
+            if (currentView === 'detail' && selectedCharacter) {
+                return (
+                    <div className="min-h-screen bg-gray-50 p-6">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="flex items-center justify-between mb-6">
+                                <button
+                                    onClick={() => setCurrentView('list')}
+                                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                                >
+                                    ← Back to Dashboard
+                                </button>
+                                <h1 className="text-3xl font-bold text-gray-800">
+                                    {selectedCharacter.name} - Details
+                                </h1>
+                            </div>
+
+                            <div className="bg-white rounded-lg shadow-lg p-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <h3 className="text-xl font-bold mb-4">Basic Info</h3>
+                                        <p><strong>Name:</strong> {selectedCharacter.name}</p>
+                                        <p><strong>Age:</strong> {selectedCharacter.age}</p>
+                                        <p><strong>Occupation:</strong> {selectedCharacter.occupation}</p>
+                                        <p><strong>Location:</strong> {selectedCharacter.location}</p>
+                                        <p><strong>Personality:</strong> {selectedCharacter.personality}</p>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold mb-4">Interests</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedCharacter.interests?.map((interest, idx) => (
+                                                <span key={idx} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
+                                                    {interest}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="mt-6">
+                                    <h3 className="text-xl font-bold mb-4">System Prompt Preview</h3>
+                                    <div className="bg-gray-100 p-4 rounded-lg text-sm font-mono max-h-64 overflow-y-auto">
+                                        {selectedCharacter.systemPrompt?.substring(0, 500)}...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gray-50 p-6">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="text-center mb-8">
+                            <h1 className="text-4xl font-bold text-gray-800 mb-2">🎭 LetsChat Online Admin</h1>
+                            <p className="text-gray-600">Character & Model Management Dashboard</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            {/* Upload Section */}
+                            <div className="lg:col-span-2 bg-white rounded-lg shadow-lg p-6">
+                                <h2 className="text-2xl font-bold mb-4 text-gray-800">📁 Upload Character</h2>
+                                
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Character JSON Data:
+                                    </label>
+                                    <textarea
+                                        value={jsonInput}
+                                        onChange={(e) => setJsonInput(e.target.value)}
+                                        placeholder="Paste your character JSON here..."
+                                        className="w-full h-64 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                                    />
+                                </div>
+
+                                <div className="flex gap-3 mb-4">
+                                    <button
+                                        onClick={uploadCharacter}
+                                        disabled={loading}
+                                        className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                                    >
+                                        {loading ? 'Uploading...' : '🚀 Upload Character'}
+                                    </button>
+                                    <button
+                                        onClick={() => setJsonInput(sampleCharacterJson)}
+                                        className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+                                    >
+                                        📋 Sample JSON
+                                    </button>
+                                </div>
+
+                                {uploadStatus && (
+                                    <div className={`p-3 rounded-lg text-sm ${
+                                        uploadStatus.includes('✅') 
+                                            ? 'bg-green-100 text-green-800' 
+                                            : 'bg-red-100 text-red-800'
+                                    }`}>
+                                        {uploadStatus}
+                                    </div>
+                                )}
+
+                                <div className="mt-6 text-sm text-gray-600">
+                                    <h4 className="font-medium mb-2">💡 Instructions:</h4>
+                                    <ul className="list-disc list-inside space-y-1">
+                                        <li>Copy JSON from: <code className="bg-gray-100 px-1 rounded">C:\Users\steve\Documents\PyProjects\JSON\CHARACTERS\Models\</code></li>
+                                        <li>Supports your detailed format with Big Five personality</li>
+                                        <li>Characters are automatically converted for chat compatibility</li>
+                                        <li>All personality data is preserved for analysis</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            {/* Model Testing Section */}
+                            <div className="bg-white rounded-lg shadow-lg p-6">
+                                <h2 className="text-2xl font-bold mb-4 text-gray-800">🧪 Test Models</h2>
+                                
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Select Model:
+                                    </label>
+                                    <select
+                                        value={testModel}
+                                        onChange={(e) => setTestModel(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">Choose a model...</option>
+                                        {models.map((model) => (
+                                            <option key={model.id} value={model.id}>
+                                                {model.name} ({model.cost}) {model.roleplayRating}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <button
+                                    onClick={testModelAPI}
+                                    disabled={testLoading}
+                                    className="w-full bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 disabled:opacity-50 mb-4"
+                                >
+                                    {testLoading ? 'Testing...' : '🎭 Test Roleplay'}
+                                </button>
+
+                                {testResults && (
+                                    <div className="bg-gray-100 p-3 rounded-lg text-sm font-mono max-h-64 overflow-y-auto">
+                                        <pre className="whitespace-pre-wrap">{testResults}</pre>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Characters List */}
+                        <div className="mt-8 bg-white rounded-lg shadow-lg p-6">
+                            <h2 className="text-2xl font-bold mb-4 text-gray-800">👥 Current Characters ({characters.length})</h2>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {characters.map((character, idx) => (
+                                    <div key={idx} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <span className="text-2xl">{character.avatar || '💕'}</span>
+                                            <div>
+                                                <h3 className="font-medium text-gray-800">{character.name}</h3>
+                                                <p className="text-sm text-gray-600">{character.occupation}</p>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mb-3">{character.personality}</p>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => viewCharacter(character.name)}
+                                                className="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600"
+                                            >
+                                                📋 Details
+                                            </button>
+                                            <a
+                                                href={`/?character=${character.name.toLowerCase()}`}
+                                                target="_blank"
+                                                className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600"
+                                            >
+                                                💬 Chat
+                                            </a>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {characters.length === 0 && (
+                                <div className="text-center py-8 text-gray-500">
+                                    <p>No characters uploaded yet.</p>
+                                    <p className="text-sm mt-2">Upload your first character to get started!</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Models List */}
+                        <div className="mt-8 bg-white rounded-lg shadow-lg p-6">
+                            <h2 className="text-2xl font-bold mb-4 text-gray-800">🤖 Available Roleplay Models ({models.length})</h2>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {models.map((model, idx) => (
+                                    <div key={idx} className="border border-gray-200 rounded-lg p-4">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h3 className="font-medium text-gray-800">{model.name}</h3>
+                                            <span className="text-xs bg-gray-100 px-2 py-1 rounded">{model.cost}</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 mb-2">{model.provider}</p>
+                                        <p className="text-xs text-gray-500 mb-2">{model.description}</p>
+                                        <div className="text-sm">{model.roleplayRating}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<CharacterAdmin />, document.getElementById('admin-root'));
+    </script>
+</body>
+</html>
