@@ -6,7 +6,7 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 // Database connection
 const pool = new Pool({
@@ -316,8 +316,8 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// Start server
-app.listen(PORT, async () => {
+// Start server - IMPORTANT: Bind to 0.0.0.0 for Railway
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 LetsChat Online server running on port ${PORT}`);
   await initDB();
 });
