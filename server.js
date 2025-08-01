@@ -132,6 +132,25 @@ function generateProfileImages(ethnicity) {
   return imagesByEthnicity[ethnicity] || imagesByEthnicity['caucasian'];
 }
 
+// Add this health check middleware BEFORE other routes
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy',
+    service: 'letschatonline',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+// Add a simple root response too
+app.get('/', (req, res) => {
+  if (req.headers.accept && req.headers.accept.includes('text/html')) {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  } else {
+    res.json({ message: 'LetsChat Online API', status: 'running' });
+  }
+});
+
 // Routes
 app.get('/api/characters', async (req, res) => {
   try {
