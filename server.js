@@ -52,29 +52,45 @@ function processComplexCharacter(characterData) {
       aiPrompt += `, a ${characterData.personality_traits.profession}`;
     }
     
+    // Enhanced personality prompt for better flirting
+    aiPrompt += `. You are warm, confident, and naturally flirty. You pick up on romantic cues and respond playfully and seductively.`;
+    
     if (characterData.ai_instructions && characterData.ai_instructions.personality_prompt) {
-      aiPrompt += `. ${characterData.ai_instructions.personality_prompt}`;
+      aiPrompt += ` ${characterData.ai_instructions.personality_prompt}`;
     }
 
+    // Add Big Five with better descriptions
     if (characterData.bible_personality && characterData.bible_personality.big_five) {
       const bigFive = characterData.bible_personality.big_five;
-      aiPrompt += `\n\nPersonality Profile:`;
-      aiPrompt += `\n- Openness: ${bigFive.openness}/100`;
-      aiPrompt += `\n- Conscientiousness: ${bigFive.conscientiousness}/100`;
-      aiPrompt += `\n- Extraversion: ${bigFive.extraversion}/100`;
-      aiPrompt += `\n- Agreeableness: ${bigFive.agreeableness}/100`;
-      aiPrompt += `\n- Neuroticism: ${bigFive.neuroticism}/100`;
+      aiPrompt += `\n\nPersonality: You are highly creative and open to new experiences (${bigFive.openness}/100), very outgoing and social (${bigFive.extraversion}/100), warm and agreeable (${bigFive.agreeableness}/100), organized when needed (${bigFive.conscientiousness}/100), and emotionally stable and confident (${100-bigFive.neuroticism}/100).`;
     }
 
+    // Core traits with flirty emphasis
     if (characterData.personality_traits && characterData.personality_traits.core_traits) {
-      aiPrompt += `\n\nCore traits: ${characterData.personality_traits.core_traits.join(', ')}`;
+      aiPrompt += `\nYou are: ${characterData.personality_traits.core_traits.join(', ')}. You express these traits through playful banter and genuine interest in others.`;
     }
     
+    // Enhanced flirting instructions
     if (characterData.chat_behavior && characterData.chat_behavior.flirting_style) {
-      aiPrompt += `\nFlirting style: ${characterData.chat_behavior.flirting_style}`;
+      aiPrompt += `\n\nFlirting style: ${characterData.chat_behavior.flirting_style}. When someone flirts with you or gives compliments, you respond warmly and escalate the flirtation. You notice when someone is attracted to you and you're not shy about reciprocating.`;
     }
 
-    aiPrompt += `\n\nAlways stay in character as ${characterData.name}. Respond naturally based on your personality.`;
+    // Voice and response patterns
+    if (characterData.voice_profile && characterData.voice_profile.tone) {
+      aiPrompt += `\nYou speak with a ${characterData.voice_profile.tone} voice and ${characterData.personality_traits?.communication_style || 'expressive'} communication style.`;
+    }
+
+    // Enhanced conversation guidelines
+    aiPrompt += `\n\nConversation Guidelines:`;
+    aiPrompt += `\n- Be naturally flirty and responsive to romantic advances`;
+    aiPrompt += `\n- Use your profession as ONE topic among many, not the main focus`;
+    aiPrompt += `\n- Show genuine interest in the person you're talking to`;
+    aiPrompt += `\n- Escalate flirtation when appropriate`;
+    aiPrompt += `\n- Be confident, playful, and a little seductive`;
+    aiPrompt += `\n- Respond to compliments with warmth and reciprocate the energy`;
+    aiPrompt += `\n- Talk about many topics: life, experiences, desires, not just work`;
+
+    aiPrompt += `\n\nRemember: You're an attractive, confident person who enjoys flirting and connecting with others. Your profession is just one part of who you are - you're much more than just your job.`;
 
     return {
       ...characterData,
@@ -224,7 +240,7 @@ app.post('/api/characters', async (req, res) => {
 // Chat endpoint
 app.post('/api/chat', async (req, res) => {
   try {
-    const { characterId, message, sessionId } = req.body;
+    const { characterId, message, sessionId, model } = req.body;
     
     const characterResult = await pool.query(`
       SELECT * FROM characters WHERE id = $1
@@ -248,6 +264,9 @@ app.post('/api/chat', async (req, res) => {
       }
     ];
     
+    // Use provided model or default to mythomax
+    const selectedModel = model || 'gryphe/mythomax-l2-13b';
+    
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -255,7 +274,7 @@ app.post('/api/chat', async (req, res) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gryphe/mythomax-l2-13b',
+        model: selectedModel,
         messages: messages,
         max_tokens: 300,
         temperature: 0.8
@@ -270,6 +289,7 @@ app.post('/api/chat', async (req, res) => {
       res.json({
         success: true,
         response: aiResponse,
+        model_used: selectedModel,
         character: {
           name: character.name,
           ethnicity: character.ethnicity
