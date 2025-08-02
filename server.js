@@ -163,8 +163,7 @@ initDB().then(() => {
 }).catch(error => {
   console.error('Failed to start server:', error);
   process.exit(1);
-});, roleplayRating: '9.5/10', description: 'Best overall for deep character roleplay' },
-    { id: 'anthropic/claude-3-opus', name: 'Claude 3 Opus', cost: '$
+{ id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', cost: '$$$', roleplayRating: '9.5/10', description: 'Best overall for deep character roleplay' },
 
 // Upload character
 app.post('/api/characters', async (req, res) => {
