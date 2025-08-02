@@ -3,741 +3,358 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChatCharacters - Intelligent Conversations</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>LetsChat Online</title>
     <style>
-        .chat-photo-frame {
-            width: 300px;
-            height: 400px;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+
+        .sidebar {
+            background: white;
             border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            position: relative;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
-        .chat-photo {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: opacity 0.5s ease-in-out;
+
+        .chat-area {
+            background: white;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
-        .memory-indicator {
-            animation: pulse 2s infinite;
+
+        .header {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
         }
-        .message-bubble {
+
+        .character-list {
+            margin-bottom: 20px;
+        }
+
+        .character-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .character-item:hover {
+            background: #e9ecef;
+        }
+
+        .character-item.active {
+            background: #667eea;
+            color: white;
+            border-color: #5a6fd8;
+        }
+
+        .character-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .character-profession {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .chat-header {
+            background: #667eea;
+            color: white;
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            text-align: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
             max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
             word-wrap: break-word;
         }
-        .photo-overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+
+        .message.user .message-content {
+            background: #667eea;
             color: white;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            outline: none;
+            font-size: 16px;
+        }
+
+        .input-field:focus {
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .send-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
             padding: 10px;
-            font-size: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .welcome {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
         }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div class="container">
+        <div class="sidebar">
+            <div class="header">
+                <h1>🎭 LetsChat Online</h1>
+                <p>Choose a character to chat with</p>
+            </div>
+            
+            <div class="character-list" id="characterList">
+                <div class="loading">Loading characters...</div>
+            </div>
+        </div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        <div class="chat-area">
+            <div class="chat-header">
+                <h2 id="chatTitle">Select a Character</h2>
+                <p id="chatSubtitle">Choose someone to chat with</p>
+            </div>
 
-        const ChatCharacters = () => {
-            const [currentView, setCurrentView] = useState('profiles');
-            const [selectedCharacter, setSelectedCharacter] = useState(null);
-            const [characters, setCharacters] = useState({});
-            const [messages, setMessages] = useState([]);
-            const [userMessage, setUserMessage] = useState('');
-            const [isLoading, setIsLoading] = useState(false);
-            const [settings, setSettings] = useState({
-                apiKey: '',
-                model: 'meta-llama/llama-3.1-70b-instruct:free',
-                isOpen: false
-            });
-            const [tokens, setTokens] = useState(50);
+            <div class="chat-messages" id="chatMessages">
+                <div class="welcome">
+                    <h3>Welcome to LetsChat Online!</h3>
+                    <p>Select a character from the sidebar to start chatting.</p>
+                </div>
+            </div>
 
-            // Memory System States
-            const [tenMinuteNotes, setTenMinuteNotes] = useState([]);
-            const [sessionMemory, setSessionMemory] = useState([]);
-            const [lastMemoryCheck, setLastMemoryCheck] = useState(Date.now());
-            const [conversationStartTime, setConversationStartTime] = useState(null);
+            <div class="chat-input">
+                <input 
+                    type="text" 
+                    class="input-field" 
+                    id="messageInput" 
+                    placeholder="Type your message..."
+                    disabled
+                >
+                <button class="send-btn" id="sendBtn" disabled>Send</button>
+            </div>
+        </div>
+    </div>
 
-            // Photo Display States
-            const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
-            const [photoRotationEnabled, setPhotoRotationEnabled] = useState(true);
+    <script>
+        let characters = [];
+        let currentCharacter = null;
+        let sessionId = 'session_' + Date.now();
 
-            const messagesEndRef = useRef(null);
-
-            // Scroll to bottom of messages
-            const scrollToBottom = () => {
-                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-            };
-
-            useEffect(() => {
-                scrollToBottom();
-            }, [messages]);
-
-            // Photo rotation effect
-            useEffect(() => {
-                if (!selectedCharacter || !photoRotationEnabled) return;
+        // Load characters from backend
+        async function loadCharacters() {
+            try {
+                const response = await fetch('/api/characters');
+                characters = await response.json();
                 
-                const character = characters[selectedCharacter];
-                if (!character?.profileImages || character.profileImages.length <= 1) return;
-
-                const interval = setInterval(() => {
-                    setCurrentPhotoIndex(prev => 
-                        (prev + 1) % character.profileImages.length
-                    );
-                }, 4000); // Change photo every 4 seconds
-
-                return () => clearInterval(interval);
-            }, [selectedCharacter, characters, photoRotationEnabled]);
-
-            // Memory System - 10 Minute Analysis
-            useEffect(() => {
-                if (currentView !== 'chat' || messages.length < 2) return;
-
-                const checkMemory = () => {
-                    const now = Date.now();
-                    const timeSinceLastCheck = now - lastMemoryCheck;
-                    
-                    // Check every 10 minutes (600000ms)
-                    if (timeSinceLastCheck >= 600000) {
-                        analyzeConversationForMemory();
-                        setLastMemoryCheck(now);
-                    }
-                };
-
-                const interval = setInterval(checkMemory, 60000); // Check every minute
-                return () => clearInterval(interval);
-            }, [messages, lastMemoryCheck, currentView]);
-
-            // Analyze conversation for memory creation
-            const analyzeConversationForMemory = async () => {
-                const recentMessages = messages.slice(-20); // Last 20 messages
-                const conversationText = recentMessages
-                    .map(msg => `${msg.sender}: ${msg.text}`)
-                    .join('\n');
-
-                const memoryPrompt = `Analyze this conversation and extract key memories. Look for:
-- Life events (jobs, moving, relationships, achievements)
-- Emotional moments (fights, celebrations, bad days, good days)
-- Activities (parties, cooking plans, vacations, hobbies)
-- Personal details (jokes, stories, preferences, health)
-- Future plans or commitments
-
-Conversation:
-${conversationText}
-
-Create a concise memory note (under 150 words) of the most important topics discussed:`;
-
-                try {
-                    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                        method: "POST",
-                        headers: {
-                            "Authorization": `Bearer ${settings.apiKey}`,
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            model: settings.model,
-                            messages: [
-                                { role: "user", content: memoryPrompt }
-                            ],
-                            max_tokens: 200
-                        })
-                    });
-
-                    const data = await response.json();
-                    const memoryNote = data.choices[0].message.content;
-
-                    setTenMinuteNotes(prev => [...prev, {
-                        timestamp: Date.now(),
-                        content: memoryNote,
-                        messageCount: messages.length
-                    }]);
-
-                } catch (error) {
-                    console.error('Memory analysis failed:', error);
-                }
-            };
-
-            // Load session memory for character
-            const loadCharacterMemory = (characterKey) => {
-                const memoryKey = `memory_${characterKey}_${getUserId()}`;
-                const savedMemory = localStorage.getItem(memoryKey);
+                const characterList = document.getElementById('characterList');
                 
-                if (savedMemory) {
-                    try {
-                        const memory = JSON.parse(savedMemory);
-                        setSessionMemory(memory.sessions || []);
-                        return memory.sessions;
-                    } catch (error) {
-                        console.error('Failed to load memory:', error);
-                    }
-                }
-                return [];
-            };
-
-            // Save session memory
-            const saveSessionMemory = (characterKey, sessions) => {
-                const memoryKey = `memory_${characterKey}_${getUserId()}`;
-                const memoryData = {
-                    sessions,
-                    lastUpdated: Date.now()
-                };
-                localStorage.setItem(memoryKey, JSON.stringify(memoryData));
-            };
-
-            // Get user ID (simple implementation)
-            const getUserId = () => {
-                let userId = localStorage.getItem('chatcharacters_user_id');
-                if (!userId) {
-                    userId = 'user_' + Math.random().toString(36).substr(2, 9);
-                    localStorage.setItem('chatcharacters_user_id', userId);
-                }
-                return userId;
-            };
-
-            // Create session summary when chat ends
-            const createSessionSummary = async () => {
-                if (tenMinuteNotes.length === 0) return;
-
-                const notesText = tenMinuteNotes
-                    .map(note => note.content)
-                    .join('\n\n');
-
-                const summaryPrompt = `Summarize these conversation highlights into a single session memory (under 300 words):
-
-${notesText}
-
-Create a comprehensive summary that captures the key relationship developments, personal details shared, and important topics discussed:`;
-
-                try {
-                    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                        method: "POST",
-                        headers: {
-                            "Authorization": `Bearer ${settings.apiKey}`,
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            model: settings.model,
-                            messages: [
-                                { role: "user", content: summaryPrompt }
-                            ],
-                            max_tokens: 400
-                        })
-                    });
-
-                    const data = await response.json();
-                    const sessionSummary = data.choices[0].message.content;
-
-                    const newSession = {
-                        id: Date.now(),
-                        date: new Date().toISOString().split('T')[0],
-                        summary: sessionSummary,
-                        tokens: sessionSummary.length,
-                        tenMinuteNotes: tenMinuteNotes.length,
-                        messageCount: messages.length,
-                        duration: Date.now() - conversationStartTime
-                    };
-
-                    const updatedSessions = [newSession, ...sessionMemory];
-                    setSessionMemory(updatedSessions);
-                    saveSessionMemory(selectedCharacter, updatedSessions);
-
-                } catch (error) {
-                    console.error('Session summary failed:', error);
-                }
-            };
-
-            // Load characters (fallback to support character)
-            useEffect(() => {
-                setCharacters({
-                    support: {
-                        name: "Support",
-                        age: 25,
-                        occupation: "Platform Assistant",
-                        location: "ChatCharacters HQ",
-                        description: "Friendly assistant helping you connect",
-                        avatar: "💬",
-                        profileImages: [
-                            "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=400&h=600&fit=crop&crop=face",
-                            "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=600&fit=crop&crop=face",
-                            "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=600&fit=crop&crop=face"
-                        ],
-                        interests: ["Helping Others", "Technology", "Conversations"],
-                        personality: "Helpful and understanding",
-                        lookingFor: "Ways to help you have a great experience",
-                        prompt: "You are a friendly support assistant for ChatCharacters platform. Be helpful, professional, and engaging."
-                    }
-                });
-            }, []);
-
-            const startChatWith = (characterKey) => {
-                setSelectedCharacter(characterKey);
-                setCurrentView('chat');
-                setCurrentPhotoIndex(0);
-                setConversationStartTime(Date.now());
-                setLastMemoryCheck(Date.now());
-                setTenMinuteNotes([]);
-
-                // Load character memory
-                const memory = loadCharacterMemory(characterKey);
-                
-                const character = characters[characterKey];
-                const memoryContext = memory.length > 0 ? 
-                    `\n\nYour memory of previous conversations with this user:\n${memory.slice(0, 3).map(s => s.summary).join('\n\n')}` : 
-                    '\n\nThis is your first conversation with this user.';
-
-                const welcomeMessage = character.name === "Support" ?
-                    "Gosh, I have no clue what happened to the other characters. I'll let them know you tried to reach them. In the meantime, why don't you and I chat a little bit?" :
-                    memory.length > 0 ? 
-                        "Hey! Great to see you again! 😊 How have you been?" :
-                        `Hi there! I'm ${character.name}. ${character.description} Let's chat! 💕`;
-
-                setMessages([{
-                    sender: character.name,
-                    text: welcomeMessage,
-                    timestamp: Date.now()
-                }]);
-            };
-
-            const sendMessage = async () => {
-                if (!userMessage.trim() || isLoading) return;
-                if (tokens <= 0) {
-                    alert('No tokens remaining! Please purchase more to continue chatting.');
+                if (characters.length === 0) {
+                    characterList.innerHTML = '<div class="error">No characters available. Please add characters via the admin panel.</div>';
                     return;
                 }
 
-                const newUserMessage = {
-                    sender: 'You',
-                    text: userMessage,
-                    timestamp: Date.now()
-                };
-
-                setMessages(prev => [...prev, newUserMessage]);
-                setUserMessage('');
-                setIsLoading(true);
-                setTokens(prev => Math.max(0, prev - 1));
-
-                const character = characters[selectedCharacter];
-                const recentMessages = [...messages, newUserMessage].slice(-10);
-                const conversationHistory = recentMessages
-                    .map(msg => ({ role: msg.sender === 'You' ? 'user' : 'assistant', content: msg.text }))
-                    .slice(0, -1);
-
-                // Add memory context
-                const memoryContext = sessionMemory.length > 0 ? 
-                    `Previous conversations: ${sessionMemory.slice(0, 3).map(s => s.summary).join(' ')}` : 
-                    'First conversation with this user.';
-
-                const tenMinuteContext = tenMinuteNotes.length > 0 ?
-                    `Recent conversation highlights: ${tenMinuteNotes.slice(-2).map(n => n.content).join(' ')}` : '';
-
-                const systemPrompt = `${character.prompt}
-
-Memory Context: ${memoryContext}
-${tenMinuteContext}
-
-Respond naturally and reference past conversations when relevant. Keep responses under 100 words unless the topic requires more detail.`;
-
-                try {
-                    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                        method: "POST",
-                        headers: {
-                            "Authorization": `Bearer ${settings.apiKey}`,
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            model: settings.model,
-                            messages: [
-                                { role: "system", content: systemPrompt },
-                                ...conversationHistory,
-                                { role: "user", content: userMessage }
-                            ],
-                            max_tokens: 150
-                        })
-                    });
-
-                    const data = await response.json();
-                    const aiResponse = data.choices[0].message.content;
-
-                    setMessages(prev => [...prev, {
-                        sender: character.name,
-                        text: aiResponse,
-                        timestamp: Date.now()
-                    }]);
-
-                } catch (error) {
-                    setMessages(prev => [...prev, {
-                        sender: character.name,
-                        text: "Sorry, I'm having trouble connecting right now. Please check your API settings! 💔",
-                        timestamp: Date.now()
-                    }]);
-                    setTokens(prev => prev + 1); // Refund token on error
-                }
-
-                setIsLoading(false);
-            };
-
-            const endChat = () => {
-                if (tenMinuteNotes.length > 0) {
-                    createSessionSummary();
-                }
-                setCurrentView('profiles');
-                setSelectedCharacter(null);
-                setMessages([]);
-                setTenMinuteNotes([]);
-            };
-
-            // Profiles View
-            if (currentView === 'profiles') {
-                return (
-                    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-                        {/* Header */}
-                        <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6">
-                            <div className="max-w-6xl mx-auto flex justify-between items-center">
-                                <div>
-                                    <h1 className="text-4xl font-bold">💬 ChatCharacters</h1>
-                                    <p className="text-xl opacity-90">Connect with any character, anytime</p>
-                                </div>
-                                <div className="flex items-center space-x-4">
-                                    <div className="text-right">
-                                        <div className="text-lg font-semibold">🪙 {tokens} tokens</div>
-                                        <div className="text-sm opacity-75">Photos: $0.50 • Chat: $5/hour</div>
-                                    </div>
-                                    <button 
-                                        onClick={() => setSettings(prev => ({...prev, isOpen: !prev.isOpen}))}
-                                        className="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-all"
-                                    >
-                                        ⚙️ Settings
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Settings Panel */}
-                        {settings.isOpen && (
-                            <div className="bg-white bg-opacity-10 backdrop-blur-sm border-b border-white border-opacity-20 p-6">
-                                <div className="max-w-6xl mx-auto">
-                                    <h3 className="text-white text-xl mb-4">⚙️ Platform Settings</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-white text-sm mb-2">OpenRouter API Key:</label>
-                                            <input
-                                                type="password"
-                                                value={settings.apiKey}
-                                                onChange={(e) => setSettings(prev => ({...prev, apiKey: e.target.value}))}
-                                                className="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-60"
-                                                placeholder="sk-or-..."
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-white text-sm mb-2">AI Model:</label>
-                                            <select
-                                                value={settings.model}
-                                                onChange={(e) => setSettings(prev => ({...prev, model: e.target.value}))}
-                                                className="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white"
-                                            >
-                                                <option value="meta-llama/llama-3.1-70b-instruct:free">Llama 3.1 70B (Free)</option>
-                                                <option value="meta-llama/llama-3.1-70b-instruct">Llama 3.1 70B ($)</option>
-                                                <option value="anthropic/claude-3-haiku">Claude 3 Haiku ($)</option>
-                                                <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet ($$)</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Character Profiles */}
-                        <div className="max-w-6xl mx-auto p-8">
-                            <h2 className="text-3xl font-bold text-white text-center mb-8">
-                                {Object.keys(characters).length === 1 && characters.support ? 
-                                    "Support Available" : "Choose Your Character"
-                                }
-                            </h2>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                {Object.entries(characters).map(([key, character]) => (
-                                    <div key={key} className="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl p-6 border border-white border-opacity-20 hover:bg-opacity-20 transition-all duration-300">
-                                        {/* Photo Gallery */}
-                                        <div className="relative mb-6">
-                                            <div className="w-full h-80 rounded-xl overflow-hidden shadow-lg">
-                                                <img
-                                                    src={character.profileImages?.[0] || "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=400&h=600&fit=crop&crop=face"}
-                                                    alt={character.name}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            </div>
-                                            
-                                            {/* Photo count badge */}
-                                            {character.profileImages && character.profileImages.length > 1 && (
-                                                <div className="absolute top-3 left-3 bg-black bg-opacity-60 text-white px-2 py-1 rounded-lg text-sm">
-                                                    📸 {character.profileImages.length} photos
-                                                </div>
-                                            )}
-                                            
-                                            {/* Support badge */}
-                                            {key === 'support' && (
-                                                <div className="absolute top-3 right-3 bg-yellow-500 bg-opacity-90 text-black px-2 py-1 rounded-lg text-sm font-semibold">
-                                                    ⚠️ Temporary Assistant
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Character Info */}
-                                        <div className="text-center mb-6">
-                                            <h3 className="text-2xl font-bold text-white mb-2">
-                                                {character.name} {character.avatar || '💕'}
-                                            </h3>
-                                            {character.age && (
-                                                <div className="inline-block bg-purple-500 bg-opacity-60 text-white px-3 py-1 rounded-full text-sm mb-3">
-                                                    {character.age} years old
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Details */}
-                                        <div className="space-y-3 mb-6">
-                                            {character.location && (
-                                                <div className="flex items-center text-white text-sm">
-                                                    <span className="mr-2">📍</span>
-                                                    {character.location}
-                                                </div>
-                                            )}
-                                            {character.occupation && (
-                                                <div className="flex items-center text-white text-sm">
-                                                    <span className="mr-2">💼</span>
-                                                    {character.occupation}
-                                                </div>
-                                            )}
-                                            {character.personality && (
-                                                <div className="flex items-center text-white text-sm">
-                                                    <span className="mr-2">💭</span>
-                                                    {character.personality}
-                                                </div>
-                                            )}
-                                            {character.lookingFor && (
-                                                <div className="flex items-center text-white text-sm">
-                                                    <span className="mr-2">🎯</span>
-                                                    {character.lookingFor}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="text-center mb-6">
-                                            <p className="text-white text-lg italic">"{character.description}"</p>
-                                        </div>
-
-                                        {/* Interests */}
-                                        {character.interests && (
-                                            <div className="mb-6">
-                                                <h4 className="text-white font-semibold mb-3">Interests:</h4>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {character.interests.map((interest, idx) => (
-                                                        <span key={idx} className="bg-blue-500 bg-opacity-60 text-white px-3 py-1 rounded-full text-sm">
-                                                            {interest}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Chat Button */}
-                                        <button
-                                            onClick={() => startChatWith(key)}
-                                            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 text-lg"
-                                        >
-                                            {key === 'support' ? '🆘 Chat with Support' : `💬 Start Chatting with ${character.name}`}
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="text-center text-white py-8">
-                            <p className="text-lg">ChatCharacters - Where connections come to life</p>
-                        </div>
+                characterList.innerHTML = characters.map(char => `
+                    <div class="character-item" onclick="selectCharacter(${char.id})">
+                        <div class="character-name">${char.name}</div>
+                        <div class="character-profession">${char.personality_traits?.profession || 'Character'}</div>
                     </div>
-                );
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading characters:', error);
+                document.getElementById('characterList').innerHTML = 
+                    '<div class="error">Failed to load characters</div>';
             }
+        }
 
-            // Chat View
-            const character = characters[selectedCharacter];
-            if (!character) return <div>Loading...</div>;
-
-            return (
-                <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex">
-                    {/* Chat Photo Display */}
-                    <div className="w-80 bg-black bg-opacity-30 p-6 flex flex-col">
-                        <div className="mb-4">
-                            <button
-                                onClick={endChat}
-                                className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-all mb-4"
-                            >
-                                ← Back to Characters
-                            </button>
-                        </div>
-
-                        {/* Character Photo Frame */}
-                        <div className="chat-photo-frame mx-auto mb-6">
-                            <img
-                                src={character.profileImages?.[currentPhotoIndex] || character.profileImages?.[0] || "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=400&h=600&fit=crop&crop=face"}
-                                alt={character.name}
-                                className="chat-photo"
-                            />
-                            <div className="photo-overlay">
-                                <div className="font-semibold">{character.name}</div>
-                                {character.profileImages && character.profileImages.length > 1 && (
-                                    <div className="text-xs">
-                                        Photo {currentPhotoIndex + 1} of {character.profileImages.length}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Photo Controls */}
-                        {character.profileImages && character.profileImages.length > 1 && (
-                            <div className="mb-6">
-                                <div className="flex justify-center space-x-2 mb-3">
-                                    {character.profileImages.map((_, idx) => (
-                                        <button
-                                            key={idx}
-                                            onClick={() => setCurrentPhotoIndex(idx)}
-                                            className={`w-2 h-2 rounded-full transition-all ${
-                                                idx === currentPhotoIndex ? 'bg-white' : 'bg-white bg-opacity-40'
-                                            }`}
-                                        />
-                                    ))}
-                                </div>
-                                <div className="flex justify-center space-x-2">
-                                    <button
-                                        onClick={() => setCurrentPhotoIndex(prev => 
-                                            prev === 0 ? character.profileImages.length - 1 : prev - 1
-                                        )}
-                                        className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-1 rounded text-sm"
-                                    >
-                                        ◀
-                                    </button>
-                                    <button
-                                        onClick={() => setPhotoRotationEnabled(!photoRotationEnabled)}
-                                        className={`px-3 py-1 rounded text-sm transition-all ${
-                                            photoRotationEnabled 
-                                                ? 'bg-green-500 bg-opacity-60 text-white' 
-                                                : 'bg-white bg-opacity-20 text-white hover:bg-opacity-30'
-                                        }`}
-                                    >
-                                        {photoRotationEnabled ? '⏸️' : '▶️'}
-                                    </button>
-                                    <button
-                                        onClick={() => setCurrentPhotoIndex(prev => 
-                                            (prev + 1) % character.profileImages.length
-                                        )}
-                                        className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-1 rounded text-sm"
-                                    >
-                                        ▶
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Memory Status */}
-                        <div className="bg-white bg-opacity-10 rounded-lg p-4 text-white text-sm">
-                            <div className="memory-indicator mb-2">🧠 Memory Status</div>
-                            <div>Session Notes: {tenMinuteNotes.length}</div>
-                            <div>Past Sessions: {sessionMemory.length}</div>
-                            <div className="text-xs opacity-75 mt-2">
-                                Next memory check: {Math.ceil((600000 - (Date.now() - lastMemoryCheck)) / 60000)}m
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Chat Interface */}
-                    <div className="flex-1 flex flex-col">
-                        {/* Chat Header */}
-                        <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <h2 className="text-2xl font-bold">{character.name} {character.avatar}</h2>
-                                    <p className="opacity-90">{character.description}</p>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-lg font-semibold">🪙 {tokens} tokens</div>
-                                    <div className="text-sm opacity-75">10 tokens/hour • 1 token/photo</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Messages */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                            {messages.map((message, index) => (
-                                <div key={index} className={`flex ${message.sender === 'You' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`message-bubble px-4 py-3 rounded-2xl ${
-                                        message.sender === 'You' 
-                                            ? 'bg-blue-500 text-white'
-                                            : 'bg-white bg-opacity-20 text-white'
-                                    }`}>
-                                        <div className="font-semibold text-sm opacity-75 mb-1">
-                                            {message.sender}
-                                        </div>
-                                        <div>{message.text}</div>
-                                        <div className="text-xs opacity-60 mt-1">
-                                            {new Date(message.timestamp).toLocaleTimeString()}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                            {isLoading && (
-                                <div className="flex justify-start">
-                                    <div className="bg-white bg-opacity-20 text-white px-4 py-3 rounded-2xl">
-                                        <div className="flex items-center space-x-2">
-                                            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                                            <span>{character.name} is typing...</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                            <div ref={messagesEndRef} />
-                        </div>
-
-                        {/* Message Input */}
-                        <div className="border-t border-white border-opacity-20 p-4">
-                            <div className="flex space-x-3">
-                                <input
-                                    type="text"
-                                    value={userMessage}
-                                    onChange={(e) => setUserMessage(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                                    placeholder={`Message ${character.name}...`}
-                                    className="flex-1 p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-60"
-                                    disabled={isLoading}
-                                />
-                                <button
-                                    onClick={sendMessage}
-                                    disabled={isLoading || !userMessage.trim() || tokens <= 0}
-                                    className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg transition-all"
-                                >
-                                    💕 Send
-                                </button>
-                            </div>
-                            <div className="text-center text-white text-sm mt-2 opacity-75">
-                                Chat costs 10 tokens per hour • {tokens} tokens remaining
-                            </div>
-                        </div>
+        // Select a character
+        function selectCharacter(characterId) {
+            currentCharacter = characters.find(c => c.id === characterId);
+            
+            // Update UI
+            document.querySelectorAll('.character-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.character-item').classList.add('active');
+            
+            document.getElementById('chatTitle').textContent = currentCharacter.name;
+            document.getElementById('chatSubtitle').textContent = 
+                currentCharacter.personality_traits?.profession || 'Ready to chat';
+            
+            // Enable chat input
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            document.getElementById('messageInput').placeholder = `Chat with ${currentCharacter.name}...`;
+            
+            // Clear messages
+            document.getElementById('chatMessages').innerHTML = `
+                <div class="message assistant">
+                    <div class="message-content">
+                        Hi! I'm ${currentCharacter.name}. ${currentCharacter.personality_traits?.profession ? `I'm a ${currentCharacter.personality_traits.profession}.` : ''} What would you like to talk about?
                     </div>
                 </div>
-            );
-        };
+            `;
+        }
 
-        ReactDOM.render(<ChatCharacters />, document.getElementById('root'));
+        // Send message
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message || !currentCharacter) return;
+            
+            // Add user message to chat
+            addMessage(message, 'user');
+            input.value = '';
+            
+            // Disable send button
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        characterId: currentCharacter.id,
+                        message: message,
+                        sessionId: sessionId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addMessage(data.response, 'assistant');
+                } else {
+                    addMessage('Sorry, I had trouble responding. Please try again.', 'assistant');
+                }
+                
+            } catch (error) {
+                console.error('Chat error:', error);
+                addMessage('Connection error. Please check your internet and try again.', 'assistant');
+            }
+            
+            // Re-enable send button
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send';
+        }
+
+        // Add message to chat
+        function addMessage(content, sender) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.innerHTML = `
+                <div class="message-content">${content}</div>
+            `;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Event listeners
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Load characters on page load
+        loadCharacters();
     </script>
 </body>
 </html>
