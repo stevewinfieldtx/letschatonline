@@ -88,7 +88,12 @@ function processComplexCharacter(characterData) {
 
 // Routes
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'LetsChat Online' });
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    service: 'LetsChat Online'
+  });
 });
 
 app.get('/', (req, res) => {
@@ -99,7 +104,7 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// Get characters
+// Get all characters
 app.get('/api/characters', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM characters ORDER BY created_at DESC');
@@ -112,594 +117,12 @@ app.get('/api/characters', async (req, res) => {
 
 // Get available models
 app.get('/api/models', (req, res) => {
- const models = [
-  { id: 'gryphe/mythomax-l2-13b', name: 'MythoMax L2 13B', cost: '$', roleplayRating: '8.8/10', description: 'Top-tier creative and engaging personalities' },
-  { id: 'openai/gpt-4o', name: 'GPT-4o', cost: '$$', roleplayRating: '8.5/10', description: 'Reliable and intelligent character interactions' },
-  { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B', cost: '$', roleplayRating: '8.0/10', description: 'Excellent free-tier roleplay option' }
-];
- res.json(models);
-});
-
-// Upload character
-app.post('/api/characters', async (req, res) => {
-  try {
-    const characterData = req.body;
-    const processedCharacter = processComplexCharacter(characterData);
-    
-    const result = await pool.query(`
-      INSERT INTO characters (
-        name, ethnicity, bible_personality, 
-        personality_traits, chat_behavior, voice_profile, ai_instructions
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-    `, [
-      characterData.name,
-      characterData.ethnicity || null,
-      JSON.stringify(characterData.bible_personality || {}),
-      JSON.stringify(characterData.personality_traits || {}),
-      JSON.stringify(characterData.chat_behavior || {}),
-      JSON.stringify(characterData.voice_profile || {}),
-      JSON.stringify(characterData.ai_instructions || {})
-    ]);
-
-    res.json({
-      success: true,
-      message: `Successfully uploaded ${characterData.name}!`,
-      character: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error uploading character:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to upload character',
-      details: error.message
-    });
-  }
-});
-
-// Start server
-initDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 LetsChat Online server running on port ${PORT}`);
-  });
-}).catch(error => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-
-// Upload character
-app.post('/api/characters', async (req, res) => {
-  try {
-    const characterData = req.body;
-    const processedCharacter = processComplexCharacter(characterData);
-    
-    const result = await pool.query(`
-      INSERT INTO characters (
-        name, ethnicity, bible_personality, 
-        personality_traits, chat_behavior, voice_profile, ai_instructions
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-    `, [
-      characterData.name,
-      characterData.ethnicity || null,
-      JSON.stringify(characterData.bible_personality || {}),
-      JSON.stringify(characterData.personality_traits || {}),
-      JSON.stringify(characterData.chat_behavior || {}),
-      JSON.stringify(characterData.voice_profile || {}),
-      JSON.stringify(characterData.ai_instructions || {})
-    ]);
-
-    res.json({
-      success: true,
-      message: `Successfully uploaded ${characterData.name}!`,
-      character: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error uploading character:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to upload character',
-      details: error.message
-    });
-  }
-});
-
-// Start server
-initDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 LetsChat Online server running on port ${PORT}`);
-  });
-}).catch(error => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});, roleplayRating: '9.8/10', description: 'Most creative and nuanced personality simulation' },
-    { id: 'gryphe/mythalion-13b', name: 'Mythalion 13B', cost: '
-
-// Upload character
-app.post('/api/characters', async (req, res) => {
-  try {
-    const characterData = req.body;
-    const processedCharacter = processComplexCharacter(characterData);
-    
-    const result = await pool.query(`
-      INSERT INTO characters (
-        name, ethnicity, bible_personality, 
-        personality_traits, chat_behavior, voice_profile, ai_instructions
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-    `, [
-      characterData.name,
-      characterData.ethnicity || null,
-      JSON.stringify(characterData.bible_personality || {}),
-      JSON.stringify(characterData.personality_traits || {}),
-      JSON.stringify(characterData.chat_behavior || {}),
-      JSON.stringify(characterData.voice_profile || {}),
-      JSON.stringify(characterData.ai_instructions || {})
-    ]);
-
-    res.json({
-      success: true,
-      message: `Successfully uploaded ${characterData.name}!`,
-      character: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error uploading character:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to upload character',
-      details: error.message
-    });
-  }
-});
-
-// Start server
-initDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 LetsChat Online server running on port ${PORT}`);
-  });
-}).catch(error => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});, roleplayRating: '9.2/10', description: 'Built specifically for roleplay and creative writing' },
-    { id: 'neversleep/noromaid-mixtral-8x7b-instruct', name: 'Noromaid Mixtral 8x7B', cost: '$', roleplayRating: '9.0/10', description: 'Excellent for character consistency and creativity' },
-    { id: 'gryphe/mythomax-l2-13b', name: 'MythoMax L2 13B', cost: '
-
-// Upload character
-app.post('/api/characters', async (req, res) => {
-  try {
-    const characterData = req.body;
-    const processedCharacter = processComplexCharacter(characterData);
-    
-    const result = await pool.query(`
-      INSERT INTO characters (
-        name, ethnicity, bible_personality, 
-        personality_traits, chat_behavior, voice_profile, ai_instructions
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-    `, [
-      characterData.name,
-      characterData.ethnicity || null,
-      JSON.stringify(characterData.bible_personality || {}),
-      JSON.stringify(characterData.personality_traits || {}),
-      JSON.stringify(characterData.chat_behavior || {}),
-      JSON.stringify(characterData.voice_profile || {}),
-      JSON.stringify(characterData.ai_instructions || {})
-    ]);
-
-    res.json({
-      success: true,
-      message: `Successfully uploaded ${characterData.name}!`,
-      character: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error uploading character:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to upload character',
-      details: error.message
-    });
-  }
-});
-
-// Start server
-initDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 LetsChat Online server running on port ${PORT}`);
-  });
-}).catch(error => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});, roleplayRating: '8.8/10', description: 'Top-tier creative and engaging personalities' },
-    { id: 'openai/gpt-4o', name: 'GPT-4o', cost: '$', roleplayRating: '8.5/10', description: 'Reliable and intelligent character interactions' },
-    { id: 'google/gemini-pro-1.5', name: 'Gemini Pro 1.5', cost: '$', roleplayRating: '8.3/10', description: 'Good balance of creativity and coherence' },
-    { id: 'mistralai/mistral-large', name: 'Mistral Large', cost: '$', roleplayRating: '8.2/10', description: 'Strong logical roleplay with personality depth' },
-    { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B', cost: '
-
-// Upload character
-app.post('/api/characters', async (req, res) => {
-  try {
-    const characterData = req.body;
-    const processedCharacter = processComplexCharacter(characterData);
-    
-    const result = await pool.query(`
-      INSERT INTO characters (
-        name, ethnicity, bible_personality, 
-        personality_traits, chat_behavior, voice_profile, ai_instructions
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-    `, [
-      characterData.name,
-      characterData.ethnicity || null,
-      JSON.stringify(characterData.bible_personality || {}),
-      JSON.stringify(characterData.personality_traits || {}),
-      JSON.stringify(characterData.chat_behavior || {}),
-      JSON.stringify(characterData.voice_profile || {}),
-      JSON.stringify(characterData.ai_instructions || {})
-    ]);
-
-    res.json({
-      success: true,
-      message: `Successfully uploaded ${characterData.name}!`,
-      character: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error uploading character:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to upload character',
-      details: error.message
-    });
-  }
-});
-
-// Start server
-initDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 LetsChat Online server running on port ${PORT}`);
-  });
-}).catch(error => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});, roleplayRating: '8.0/10', description: 'Excellent free-tier roleplay option' },
-    { id: 'microsoft/wizardlm-2-8x22b', name: 'WizardLM 2 8x22B', cost: '$', roleplayRating: '7.8/10', description: 'Great for complex multi-turn conversations' },
-    { id: 'anthropic/claude-3-haiku', name: 'Claude 3 Haiku', cost: '
-
-// Upload character
-app.post('/api/characters', async (req, res) => {
-  try {
-    const characterData = req.body;
-    const processedCharacter = processComplexCharacter(characterData);
-    
-    const result = await pool.query(`
-      INSERT INTO characters (
-        name, ethnicity, bible_personality, 
-        personality_traits, chat_behavior, voice_profile, ai_instructions
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-    `, [
-      characterData.name,
-      characterData.ethnicity || null,
-      JSON.stringify(characterData.bible_personality || {}),
-      JSON.stringify(characterData.personality_traits || {}),
-      JSON.stringify(characterData.chat_behavior || {}),
-      JSON.stringify(characterData.voice_profile || {}),
-      JSON.stringify(characterData.ai_instructions || {})
-    ]);
-
-    res.json({
-      success: true,
-      message: `Successfully uploaded ${characterData.name}!`,
-      character: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error uploading character:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to upload character',
-      details: error.message
-    });
-  }
-});
-
-// Start server
-initDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 LetsChat Online server running on port ${PORT}`);
-  });
-}).catch(error => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});, roleplayRating: '7.5/10', description: 'Quick responses with good personality' },
-    { id: 'openai/gpt-3.5-turbo', name: 'GPT-3.5 Turbo', cost: '
-
-// Upload character
-app.post('/api/characters', async (req, res) => {
-  try {
-    const characterData = req.body;
-    const processedCharacter = processComplexCharacter(characterData);
-    
-    const result = await pool.query(`
-      INSERT INTO characters (
-        name, ethnicity, bible_personality, 
-        personality_traits, chat_behavior, voice_profile, ai_instructions
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-    `, [
-      characterData.name,
-      characterData.ethnicity || null,
-      JSON.stringify(characterData.bible_personality || {}),
-      JSON.stringify(characterData.personality_traits || {}),
-      JSON.stringify(characterData.chat_behavior || {}),
-      JSON.stringify(characterData.voice_profile || {}),
-      JSON.stringify(characterData.ai_instructions || {})
-    ]);
-
-    res.json({
-      success: true,
-      message: `Successfully uploaded ${characterData.name}!`,
-      character: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error uploading character:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to upload character',
-      details: error.message
-    });
-  }
-});
-
-// Start server
-initDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 LetsChat Online server running on port ${PORT}`);
-  });
-}).catch(error => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});, roleplayRating: '7.2/10', description: 'Reliable and cost-effective for basic roleplay' },
-    { id: 'meta-llama/llama-3.1-8b-instruct', name: 'Llama 3.1 8B', cost: '
-
-// Upload character
-app.post('/api/characters', async (req, res) => {
-  try {
-    const characterData = req.body;
-    const processedCharacter = processComplexCharacter(characterData);
-    
-    const result = await pool.query(`
-      INSERT INTO characters (
-        name, ethnicity, bible_personality, 
-        personality_traits, chat_behavior, voice_profile, ai_instructions
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-    `, [
-      characterData.name,
-      characterData.ethnicity || null,
-      JSON.stringify(characterData.bible_personality || {}),
-      JSON.stringify(characterData.personality_traits || {}),
-      JSON.stringify(characterData.chat_behavior || {}),
-      JSON.stringify(characterData.voice_profile || {}),
-      JSON.stringify(characterData.ai_instructions || {})
-    ]);
-
-    res.json({
-      success: true,
-      message: `Successfully uploaded ${characterData.name}!`,
-      character: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error uploading character:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to upload character',
-      details: error.message
-    });
-  }
-});
-
-// Start server
-initDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 LetsChat Online server running on port ${PORT}`);
-  });
-}).catch(error => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});, roleplayRating: '7.0/10', description: 'Good personality simulation, very affordable' },
-    { id: 'google/gemma-2-9b', name: 'Gemma 2 9B', cost: 'FREE', roleplayRating: '6.8/10', description: 'Decent roleplay capabilities, completely free' },
-    { id: 'qwen/qwen-2.5-72b-instruct', name: 'Qwen 2.5 72B', cost: 'FREE', roleplayRating: '6.5/10', description: 'Solid free option with good character consistency' },
-    { id: 'alpindale/goliath-120b', name: 'Goliath 120B', cost: '$', roleplayRating: '8.5/10', description: 'Massive model with incredible detail and personality depth' },
-    { id: 'cognitivecomputations/dolphin-mixtral-8x7b', name: 'Dolphin Mixtral 8x7B', cost: '
-
-// Upload character
-app.post('/api/characters', async (req, res) => {
-  try {
-    const characterData = req.body;
-    const processedCharacter = processComplexCharacter(characterData);
-    
-    const result = await pool.query(`
-      INSERT INTO characters (
-        name, ethnicity, bible_personality, 
-        personality_traits, chat_behavior, voice_profile, ai_instructions
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-    `, [
-      characterData.name,
-      characterData.ethnicity || null,
-      JSON.stringify(characterData.bible_personality || {}),
-      JSON.stringify(characterData.personality_traits || {}),
-      JSON.stringify(characterData.chat_behavior || {}),
-      JSON.stringify(characterData.voice_profile || {}),
-      JSON.stringify(characterData.ai_instructions || {})
-    ]);
-
-    res.json({
-      success: true,
-      message: `Successfully uploaded ${characterData.name}!`,
-      character: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error uploading character:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to upload character',
-      details: error.message
-    });
-  }
-});
-
-// Start server
-initDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 LetsChat Online server running on port ${PORT}`);
-  });
-}).catch(error => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});, roleplayRating: '7.8/10', description: 'Creative and expressive for roleplay scenarios' },
-    { id: 'nousresearch/nous-hermes-2-mixtral-8x7b-dpo', name: 'Nous Hermes 2 Mixtral', cost: '
-
-// Upload character
-app.post('/api/characters', async (req, res) => {
-  try {
-    const characterData = req.body;
-    const processedCharacter = processComplexCharacter(characterData);
-    
-    const result = await pool.query(`
-      INSERT INTO characters (
-        name, ethnicity, bible_personality, 
-        personality_traits, chat_behavior, voice_profile, ai_instructions
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-    `, [
-      characterData.name,
-      characterData.ethnicity || null,
-      JSON.stringify(characterData.bible_personality || {}),
-      JSON.stringify(characterData.personality_traits || {}),
-      JSON.stringify(characterData.chat_behavior || {}),
-      JSON.stringify(characterData.voice_profile || {}),
-      JSON.stringify(characterData.ai_instructions || {})
-    ]);
-
-    res.json({
-      success: true,
-      message: `Successfully uploaded ${characterData.name}!`,
-      character: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error uploading character:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to upload character',
-      details: error.message
-    });
-  }
-});
-
-// Start server
-initDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 LetsChat Online server running on port ${PORT}`);
-  });
-}).catch(error => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});, roleplayRating: '7.6/10', description: 'Excellent instruction following with personality' },
-    { id: 'meta-llama/llama-3.1-405b-instruct', name: 'Llama 3.1 405B', cost: '$
-
-// Upload character
-app.post('/api/characters', async (req, res) => {
-  try {
-    const characterData = req.body;
-    const processedCharacter = processComplexCharacter(characterData);
-    
-    const result = await pool.query(`
-      INSERT INTO characters (
-        name, ethnicity, bible_personality, 
-        personality_traits, chat_behavior, voice_profile, ai_instructions
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-    `, [
-      characterData.name,
-      characterData.ethnicity || null,
-      JSON.stringify(characterData.bible_personality || {}),
-      JSON.stringify(characterData.personality_traits || {}),
-      JSON.stringify(characterData.chat_behavior || {}),
-      JSON.stringify(characterData.voice_profile || {}),
-      JSON.stringify(characterData.ai_instructions || {})
-    ]);
-
-    res.json({
-      success: true,
-      message: `Successfully uploaded ${characterData.name}!`,
-      character: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error uploading character:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to upload character',
-      details: error.message
-    });
-  }
-});
-
-// Start server
-initDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 LetsChat Online server running on port ${PORT}`);
-  });
-}).catch(error => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});, roleplayRating: '9.0/10', description: 'Massive open-source model with exceptional capabilities' },
-    { id: 'openai/o1-preview', name: 'OpenAI o1-preview', cost: '$
-
-// Upload character
-app.post('/api/characters', async (req, res) => {
-  try {
-    const characterData = req.body;
-    const processedCharacter = processComplexCharacter(characterData);
-    
-    const result = await pool.query(`
-      INSERT INTO characters (
-        name, ethnicity, bible_personality, 
-        personality_traits, chat_behavior, voice_profile, ai_instructions
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-    `, [
-      characterData.name,
-      characterData.ethnicity || null,
-      JSON.stringify(characterData.bible_personality || {}),
-      JSON.stringify(characterData.personality_traits || {}),
-      JSON.stringify(characterData.chat_behavior || {}),
-      JSON.stringify(characterData.voice_profile || {}),
-      JSON.stringify(characterData.ai_instructions || {})
-    ]);
-
-    res.json({
-      success: true,
-      message: `Successfully uploaded ${characterData.name}!`,
-      character: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error uploading character:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to upload character',
-      details: error.message
-    });
-  }
-});
-
-// Start server
-initDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 LetsChat Online server running on port ${PORT}`);
-  });
-}).catch(error => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});, roleplayRating: '8.8/10', description: 'Advanced reasoning model with deep character understanding' }
+  const models = [
+    { id: 'gryphe/mythomax-l2-13b', name: 'MythoMax L2 13B', cost: '$', roleplayRating: '8.8/10', description: 'Top-tier creative and engaging personalities' },
+    { id: 'openai/gpt-4o', name: 'GPT-4o', cost: '$$', roleplayRating: '8.5/10', description: 'Reliable and intelligent character interactions' },
+    { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B', cost: '$', roleplayRating: '8.0/10', description: 'Excellent free-tier roleplay option' },
+    { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', cost: '$$$', roleplayRating: '9.5/10', description: 'Best overall for deep character roleplay' },
+    { id: 'anthropic/claude-3-opus', name: 'Claude 3 Opus', cost: '$$$', roleplayRating: '9.8/10', description: 'Most creative and nuanced personality simulation' }
   ];
   res.json(models);
 });
@@ -793,6 +216,78 @@ app.post('/api/characters', async (req, res) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to upload character',
+      details: error.message
+    });
+  }
+});
+
+// Chat endpoint
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { characterId, message, sessionId } = req.body;
+    
+    const characterResult = await pool.query(`
+      SELECT * FROM characters WHERE id = $1
+    `, [characterId]);
+    
+    if (characterResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Character not found' });
+    }
+    
+    const character = characterResult.rows[0];
+    const processedCharacter = processComplexCharacter(character);
+    
+    const messages = [
+      {
+        role: 'system',
+        content: processedCharacter.processed_prompt
+      },
+      {
+        role: 'user',
+        content: message
+      }
+    ];
+    
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gryphe/mythomax-l2-13b',
+        messages: messages,
+        max_tokens: 300,
+        temperature: 0.8
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.choices && data.choices[0]) {
+      const aiResponse = data.choices[0].message.content;
+      
+      res.json({
+        success: true,
+        response: aiResponse,
+        character: {
+          name: character.name,
+          ethnicity: character.ethnicity
+        }
+      });
+    } else {
+      console.error('OpenRouter API error:', data);
+      res.status(400).json({
+        success: false,
+        error: 'Failed to get AI response',
+        details: data.error?.message || 'Unknown error'
+      });
+    }
+  } catch (error) {
+    console.error('Chat error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Chat failed',
       details: error.message
     });
   }
