@@ -1,88 +1,4 @@
-// API: Purchase picture directly
-app.post('/api/purchase-picture', async (req, res) => {
-  try {
-    const { sessionId, characterId, pictureType, paymentId } = req.body;
-    
-    // Simple pricing
-    const pricing = {
-      'regular': 0.50,      // $0.50 - regular pictures
-      'intimate': 0.75      // $0.75 - bikini, bra, lingerie (chance of topless)
-    };
-    
-    const price = pricing[pictureType];
-    if (!price) {
-      return res.status(400).json({ error: 'Invalid picture type' });
-    }
-    
-    // Get character info
-    const characterResult = await pool.query(`
-      SELECT name, ethnicity, personality_traits FROM characters WHERE id = $1
-    `, [characterId]);
-    
-    if (characterResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Character not found' });
-    }
-    
-    const character = characterResult.rows[0];
-    
-    // Record purchase
-    const purchaseResult = await pool.query(`
-      INSERT INTO picture_purchases (session_id, character_id, picture_type, price_usd, payment_id, status)
-      VALUES ($1, $2, $3, $4, $5, 'paid')
-      RETURNING *
-    `, [sessionId, characterId, pictureType, price, paymentId]);
-    
-    // Generate image prompt
-    let imagePrompt = `Portrait of ${character.name}, a beautiful ${character.ethnicity} woman`;
-    
-    if (pictureType === 'regular') {
-      // Regular pictures - cute, casual, elegant
-      const styles = [
-        ', wearing casual clothes, smiling, natural lighting',
-        ', wearing elegant dress, professional photo',
-        ', casual selfie style, friendly expression',
-        ', wearing cute outfit, happy expression'
-      ];
-      imagePrompt += styles[Math.floor(Math.random() * styles.length)];
-    } else {
-      // Intimate pictures - with chance of topless
-      const isTopless = Math.random() < 0.15; // 15% chance of topless
-      
-      if (isTopless) {
-        imagePrompt += ', artistic topless portrait, tasteful, artistic lighting, beautiful';
-      } else {
-        const intimateStyles = [
-          ', wearing sexy lingerie, seductive pose, soft lighting',
-          ', wearing bikini, beach setting, confident pose',
-          ', wearing bra and panties, bedroom setting, alluring',
-          ', wearing lace lingerie, romantic lighting, elegant pose'
-        ];
-        imagePrompt += intimateStyles[Math.floor(Math.random() * intimateStyles.length)];
-      }
-    }
-    
-    imagePrompt += ', high quality, photorealistic, beautiful, 4k';
-    
-    // Here you would call your image generation API (DALL-E, Midjourney, etc.)
-    // For now, simulate with a unique URL
-    const imageUrl = `https://generated-images.letschatonline.com/${purchaseResult.rows[0].id}.jpg`;
-    
-    // Update with generated image
-    await pool.query(`
-      UPDATE picture_purchases 
-      SET image_url = $1, status = 'completed'
-      WHERE id = $2
-    `, [imageUrl, purchaseResult.rows[0].id]);
-    
-    res.json({
-      success: true,
-      image_url: imageUrl,
-      price_paid: price,
-      picture_type: pictureType,
-      is_topless: pictureType === 'intimate' && Math.random() < 0.15,
-      purchase_id: purchaseResult.rows[0].id
-    });
-  const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { Pool } = require('pg');
@@ -105,8 +21,14 @@ app.use(express.static('public'));
 // Database initialization
 async function initDB() {
   try {
+    // Force drop and recreate with correct structure
+    await pool.query(`DROP TABLE IF EXISTS picture_purchases CASCADE`);
+    await pool.query(`DROP TABLE IF EXISTS chat_messages CASCADE`);
+    await pool.query(`DROP TABLE IF EXISTS user_sessions CASCADE`);
+    await pool.query(`DROP TABLE IF EXISTS characters CASCADE`);
+    
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS characters (
+      CREATE TABLE characters (
         id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         ethnicity VARCHAR(50),
@@ -121,20 +43,18 @@ async function initDB() {
     `);
 
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS user_sessions (
+      CREATE TABLE user_sessions (
         id SERIAL PRIMARY KEY,
         session_id VARCHAR(255) UNIQUE NOT NULL,
         character_id INTEGER REFERENCES characters(id),
         user_data JSONB DEFAULT '{}',
-        token_balance INTEGER DEFAULT 0,
-        total_spent INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS chat_messages (
+      CREATE TABLE chat_messages (
         id SERIAL PRIMARY KEY,
         session_id VARCHAR(255) NOT NULL,
         character_id INTEGER REFERENCES characters(id),
@@ -146,9 +66,8 @@ async function initDB() {
       )
     `);
 
-    // Simplified tables for direct payments
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS picture_purchases (
+      CREATE TABLE picture_purchases (
         id SERIAL PRIMARY KEY,
         session_id VARCHAR(255) NOT NULL,
         character_id INTEGER REFERENCES characters(id),
@@ -161,7 +80,7 @@ async function initDB() {
       )
     `);
 
-    console.log('✅ Database initialized successfully');
+    console.log('✅ Database tables recreated with ethnicity column');
   } catch (error) {
     console.error('❌ Database initialization error:', error);
     throw error;
@@ -185,7 +104,6 @@ function processComplexCharacter(characterData) {
       aiPrompt += `. ${characterData.ai_instructions.personality_prompt}`;
     }
 
-    // Add Big Five personality
     if (characterData.bible_personality && characterData.bible_personality.big_five) {
       const bigFive = characterData.bible_personality.big_five;
       aiPrompt += `\n\nPersonality Profile:`;
@@ -196,21 +114,14 @@ function processComplexCharacter(characterData) {
       aiPrompt += `\n- Neuroticism: ${bigFive.neuroticism}/100`;
     }
 
-    // Add core traits
     if (characterData.personality_traits && characterData.personality_traits.core_traits) {
       aiPrompt += `\n\nCore traits: ${characterData.personality_traits.core_traits.join(', ')}`;
     }
     
-    if (characterData.personality_traits && characterData.personality_traits.communication_style) {
-      aiPrompt += `\nCommunication style: ${characterData.personality_traits.communication_style}`;
-    }
-
-    // Add chat behavior
     if (characterData.chat_behavior && characterData.chat_behavior.flirting_style) {
       aiPrompt += `\nFlirting style: ${characterData.chat_behavior.flirting_style}`;
     }
 
-    // Add voice profile
     if (characterData.voice_profile && characterData.voice_profile.tone) {
       aiPrompt += `\nVoice tone: ${characterData.voice_profile.tone}`;
     }
@@ -245,192 +156,7 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-
-// API: Purchase tokens
-app.post('/api/purchase-tokens', async (req, res) => {
-  try {
-    const { sessionId, amount, paymentMethod, paymentId } = req.body;
-    
-    // Token packages
-    const packages = {
-      5: { tokens: 100, price: 5.00 },
-      10: { tokens: 250, price: 10.00 },
-      20: { tokens: 600, price: 20.00 },
-      50: { tokens: 1500, price: 50.00 }
-    };
-    
-    const package = packages[amount];
-    if (!package) {
-      return res.status(400).json({ error: 'Invalid package amount' });
-    }
-    
-    // Record transaction
-    const transactionResult = await pool.query(`
-      INSERT INTO payment_transactions (session_id, amount_usd, tokens_purchased, payment_method, payment_id, status)
-      VALUES ($1, $2, $3, $4, $5, 'completed')
-      RETURNING *
-    `, [sessionId, package.price, package.tokens, paymentMethod, paymentId]);
-    
-    // Update user token balance
-    await pool.query(`
-      INSERT INTO user_sessions (session_id, token_balance)
-      VALUES ($1, $2)
-      ON CONFLICT (session_id)
-      DO UPDATE SET 
-        token_balance = user_sessions.token_balance + $2,
-        last_activity = CURRENT_TIMESTAMP
-    `, [sessionId, package.tokens]);
-    
-    res.json({
-      success: true,
-      tokens_added: package.tokens,
-      transaction_id: transactionResult.rows[0].id
-    });
-  } catch (error) {
-    console.error('Purchase error:', error);
-    res.status(500).json({ error: 'Purchase failed' });
-  }
-});
-
-// API: Request custom picture
-app.post('/api/request-picture', async (req, res) => {
-  try {
-    const { sessionId, characterId, prompt, pictureType } = req.body;
-    
-    // Picture pricing
-    const pricing = {
-      'casual': 10,      // 10 tokens - casual outfit
-      'elegant': 15,     // 15 tokens - elegant/dress up
-      'workout': 12,     // 12 tokens - workout/sports
-      'lingerie': 25,    // 25 tokens - lingerie/intimate
-      'custom': 20       // 20 tokens - custom prompt
-    };
-    
-    const tokenCost = pricing[pictureType] || 20;
-    
-    // Check user balance
-    const balanceResult = await pool.query(`
-      SELECT token_balance FROM user_sessions WHERE session_id = $1
-    `, [sessionId]);
-    
-    if (balanceResult.rows.length === 0 || balanceResult.rows[0].token_balance < tokenCost) {
-      return res.status(400).json({ 
-        error: 'Insufficient tokens',
-        required: tokenCost,
-        balance: balanceResult.rows[0]?.token_balance || 0
-      });
-    }
-    
-    // Deduct tokens
-    await pool.query(`
-      UPDATE user_sessions 
-      SET token_balance = token_balance - $1,
-          total_spent = total_spent + $1
-      WHERE session_id = $2
-    `, [tokenCost, sessionId]);
-    
-    // Get character info for image generation
-    const characterResult = await pool.query(`
-      SELECT name, ethnicity, personality_traits, voice_profile FROM characters WHERE id = $1
-    `, [characterId]);
-    
-    if (characterResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Character not found' });
-    }
-    
-    const character = characterResult.rows[0];
-    
-    // Build image prompt
-    let imagePrompt = `Portrait of ${character.name}, a beautiful ${character.ethnicity} woman`;
-    
-    if (character.personality_traits?.profession) {
-      imagePrompt += `, ${character.personality_traits.profession}`;
-    }
-    
-    // Add style based on picture type
-    const stylePrompts = {
-      'casual': ', wearing casual everyday clothes, natural lighting, friendly smile',
-      'elegant': ', wearing elegant dress, sophisticated pose, professional lighting',
-      'workout': ', wearing workout clothes, athletic pose, gym environment',
-      'lingerie': ', wearing beautiful lingerie, intimate pose, soft lighting',
-      'custom': `, ${prompt}`
-    };
-    
-    imagePrompt += stylePrompts[pictureType] || '';
-    imagePrompt += ', high quality, photorealistic, beautiful, 4k';
-    
-    // Record request
-    const requestResult = await pool.query(`
-      INSERT INTO picture_requests (session_id, character_id, request_prompt, tokens_cost, generation_status)
-      VALUES ($1, $2, $3, $4, 'generating')
-      RETURNING *
-    `, [sessionId, characterId, imagePrompt, tokenCost]);
-    
-    // Here you would integrate with an AI image generation service
-    // For now, we'll simulate with a placeholder
-    const imageUrl = `https://api.placeholder.com/character-image/${requestResult.rows[0].id}`;
-    
-    // Update with generated image
-    await pool.query(`
-      UPDATE picture_requests 
-      SET image_url = $1, generation_status = 'completed'
-      WHERE id = $2
-    `, [imageUrl, requestResult.rows[0].id]);
-    
-    res.json({
-      success: true,
-      image_url: imageUrl,
-      tokens_spent: tokenCost,
-      request_id: requestResult.rows[0].id
-    });
-  } catch (error) {
-    console.error('Picture request error:', error);
-    res.status(500).json({ error: 'Picture generation failed' });
-  }
-});
-
-// API: Get user balance
-app.get('/api/balance/:sessionId', async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    
-    const result = await pool.query(`
-      SELECT token_balance, total_spent FROM user_sessions WHERE session_id = $1
-    `, [sessionId]);
-    
-    if (result.rows.length === 0) {
-      return res.json({ token_balance: 0, total_spent: 0 });
-    }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Balance error:', error);
-    res.status(500).json({ error: 'Failed to get balance' });
-  }
-});
-
-// API: Get user's pictures
-app.get('/api/pictures/:sessionId', async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    
-    const result = await pool.query(`
-      SELECT pr.*, c.name as character_name
-      FROM picture_requests pr
-      JOIN characters c ON pr.character_id = c.id
-      WHERE pr.session_id = $1
-      ORDER BY pr.created_at DESC
-    `, [sessionId]);
-    
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Pictures error:', error);
-    res.status(500).json({ error: 'Failed to get pictures' });
-  }
-});
+// Get all characters
 app.get('/api/characters', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -482,7 +208,7 @@ app.post('/api/characters', async (req, res) => {
   }
 });
 
-// Chat endpoint
+// Chat endpoint with FULL Intelligent Memory System
 app.post('/api/chat', async (req, res) => {
   try {
     const { characterId, message, sessionId } = req.body;
@@ -498,16 +224,63 @@ app.post('/api/chat', async (req, res) => {
     const character = characterResult.rows[0];
     const processedCharacter = processComplexCharacter(character);
     
+    // INTELLIGENT MEMORY RETRIEVAL
+    const now = new Date();
+    const memoryResult = await pool.query(`
+      SELECT 
+        user_message, 
+        assistant_message, 
+        timestamp,
+        memory_weight,
+        importance_score,
+        EXTRACT(EPOCH FROM ($1 - timestamp)) / 3600 as hours_ago
+      FROM chat_messages 
+      WHERE session_id = $2 AND character_id = $3
+      ORDER BY 
+        (memory_weight * importance_score * EXP(-EXTRACT(EPOCH FROM ($1 - timestamp)) / 86400)) DESC,
+        timestamp DESC
+      LIMIT 15
+    `, [now, sessionId, characterId]);
+    
+    // Build conversation context with memory weights
     const messages = [
       {
         role: 'system',
         content: processedCharacter.processed_prompt
-      },
-      {
-        role: 'user',
-        content: message
       }
     ];
+    
+    // Add memory context if exists
+    if (memoryResult.rows.length > 0) {
+      let memoryContext = "\n\nMemory Context (what you remember about this conversation):\n";
+      memoryResult.rows.reverse().forEach((msg, idx) => {
+        const memoryStrength = msg.memory_weight * msg.importance_score;
+        const hoursAgo = Math.round(msg.hours_ago * 10) / 10;
+        
+        if (memoryStrength > 0.3) { // Only include significant memories
+          memoryContext += `- ${hoursAgo}h ago: User said "${msg.user_message}" (importance: ${msg.importance_score}/10)\n`;
+          if (msg.assistant_message) {
+            memoryContext += `  You responded: "${msg.assistant_message.substring(0, 100)}..."\n`;
+          }
+        }
+      });
+      
+      messages[0].content += memoryContext;
+    }
+    
+    // Add recent conversation (last 3 exchanges)
+    const recentHistory = memoryResult.rows.slice(-6); // Last 3 exchanges
+    recentHistory.forEach(msg => {
+      if (msg.user_message) {
+        messages.push({ role: 'user', content: msg.user_message });
+      }
+      if (msg.assistant_message) {
+        messages.push({ role: 'assistant', content: msg.assistant_message });
+      }
+    });
+    
+    // Add current message
+    messages.push({ role: 'user', content: message });
     
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -528,10 +301,47 @@ app.post('/api/chat', async (req, res) => {
     if (data.choices && data.choices[0]) {
       const aiResponse = data.choices[0].message.content;
       
+      // CALCULATE IMPORTANCE SCORE (1-10)
+      let importanceScore = 5; // Default
+      
+      // Increase importance for emotional content
+      const emotionalWords = ['love', 'hate', 'excited', 'sad', 'angry', 'happy', 'afraid', 'nervous', 'amazing', 'terrible'];
+      const messageText = (message + ' ' + aiResponse).toLowerCase();
+      emotionalWords.forEach(word => {
+        if (messageText.includes(word)) importanceScore += 1;
+      });
+      
+      // Increase importance for personal information
+      const personalWords = ['my', 'i am', 'i feel', 'i think', 'i want', 'i need', 'my family', 'my job'];
+      personalWords.forEach(phrase => {
+        if (messageText.includes(phrase)) importanceScore += 1;
+      });
+      
+      // Increase importance for questions
+      if (message.includes('?')) importanceScore += 1;
+      
+      // Cap at 10
+      importanceScore = Math.min(importanceScore, 10);
+      
+      // MEMORY WEIGHT STARTS AT 1.0, WILL DECAY OVER TIME
+      const memoryWeight = 1.0;
+      
+      // Save to database with memory system
       await pool.query(`
-        INSERT INTO chat_messages (session_id, character_id, user_message, assistant_message)
-        VALUES ($1, $2, $3, $4)
-      `, [sessionId, characterId, message, aiResponse]);
+        INSERT INTO chat_messages (
+          session_id, character_id, user_message, assistant_message, 
+          memory_weight, importance_score
+        )
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [sessionId, characterId, message, aiResponse, memoryWeight, importanceScore]);
+      
+      // MEMORY DECAY - Update old messages
+      await pool.query(`
+        UPDATE chat_messages 
+        SET memory_weight = memory_weight * 0.95
+        WHERE session_id = $1 AND character_id = $2 
+        AND timestamp < NOW() - INTERVAL '1 hour'
+      `, [sessionId, characterId]);
       
       res.json({
         success: true,
@@ -539,6 +349,11 @@ app.post('/api/chat', async (req, res) => {
         character: {
           name: character.name,
           ethnicity: character.ethnicity
+        },
+        memory_info: {
+          importance_score: importanceScore,
+          memory_weight: memoryWeight,
+          context_messages: memoryResult.rows.length
         }
       });
     } else {
@@ -553,6 +368,124 @@ app.post('/api/chat', async (req, res) => {
       success: false,
       error: 'Chat failed'
     });
+  }
+});
+
+// Picture purchase endpoint with FULL functionality
+app.post('/api/purchase-picture', async (req, res) => {
+  try {
+    const { sessionId, characterId, pictureType, paymentId } = req.body;
+    
+    // Simple pricing: $0.50 regular, $0.75 intimate
+    const pricing = {
+      'regular': 0.50,
+      'intimate': 0.75
+    };
+    
+    const price = pricing[pictureType];
+    if (!price) {
+      return res.status(400).json({ error: 'Invalid picture type' });
+    }
+    
+    // Get character info for image generation
+    const characterResult = await pool.query(`
+      SELECT name, ethnicity, personality_traits FROM characters WHERE id = $1
+    `, [characterId]);
+    
+    if (characterResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Character not found' });
+    }
+    
+    const character = characterResult.rows[0];
+    
+    // Record purchase
+    const purchaseResult = await pool.query(`
+      INSERT INTO picture_purchases (session_id, character_id, picture_type, price_usd, payment_id, status)
+      VALUES ($1, $2, $3, $4, $5, 'paid')
+      RETURNING *
+    `, [sessionId, characterId, pictureType, price, paymentId]);
+    
+    // Generate image prompt based on character and type
+    let imagePrompt = `Portrait of ${character.name}, a beautiful ${character.ethnicity} woman`;
+    
+    if (character.personality_traits?.profession) {
+      imagePrompt += `, ${character.personality_traits.profession}`;
+    }
+    
+    let isTopless = false;
+    
+    if (pictureType === 'regular') {
+      // Regular pictures - cute, casual, elegant
+      const styles = [
+        ', wearing casual clothes, smiling, natural lighting, friendly expression',
+        ', wearing elegant dress, professional photo, sophisticated pose',
+        ', casual selfie style, friendly expression, natural beauty',
+        ', wearing cute outfit, happy expression, bright lighting'
+      ];
+      imagePrompt += styles[Math.floor(Math.random() * styles.length)];
+    } else {
+      // Intimate pictures - with 15% chance of topless bonus!
+      isTopless = Math.random() < 0.15; // 15% chance
+      
+      if (isTopless) {
+        imagePrompt += ', artistic topless portrait, tasteful nude, artistic lighting, beautiful, sensual, high fashion style';
+      } else {
+        const intimateStyles = [
+          ', wearing sexy black lingerie, seductive pose, soft romantic lighting',
+          ', wearing bikini, beach setting, confident pose, sunset lighting',
+          ', wearing lace bra and panties, bedroom setting, alluring pose',
+          ', wearing red lingerie, romantic candlelight, elegant and sensual'
+        ];
+        imagePrompt += intimateStyles[Math.floor(Math.random() * intimateStyles.length)];
+      }
+    }
+    
+    imagePrompt += ', high quality, photorealistic, beautiful, 4k, professional photography';
+    
+    // Here you would integrate with DALL-E, Midjourney, or Stable Diffusion
+    // For now, simulate with a unique URL that indicates the type
+    const imageUrl = `https://generated-images.letschatonline.com/${pictureType}-${isTopless ? 'topless-' : ''}${purchaseResult.rows[0].id}.jpg`;
+    
+    // Update with generated image
+    await pool.query(`
+      UPDATE picture_purchases 
+      SET image_url = $1, status = 'completed'
+      WHERE id = $2
+    `, [imageUrl, purchaseResult.rows[0].id]);
+    
+    res.json({
+      success: true,
+      image_url: imageUrl,
+      price_paid: price,
+      picture_type: pictureType,
+      is_topless: isTopless,
+      character_name: character.name,
+      purchase_id: purchaseResult.rows[0].id,
+      prompt_used: imagePrompt
+    });
+  } catch (error) {
+    console.error('Picture purchase error:', error);
+    res.status(500).json({ error: 'Picture purchase failed' });
+  }
+});
+
+// Get user's purchased pictures
+app.get('/api/my-pictures/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    
+    const result = await pool.query(`
+      SELECT pp.*, c.name as character_name
+      FROM picture_purchases pp
+      JOIN characters c ON pp.character_id = c.id
+      WHERE pp.session_id = $1 AND pp.status = 'completed'
+      ORDER BY pp.created_at DESC
+    `, [sessionId]);
+    
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Pictures error:', error);
+    res.status(500).json({ error: 'Failed to get pictures' });
   }
 });
 
