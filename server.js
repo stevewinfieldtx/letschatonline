@@ -117,6 +117,8 @@ app.get('/api/models', (req, res) => {
   { id: 'openai/gpt-4o', name: 'GPT-4o', cost: '$$', roleplayRating: '8.5/10', description: 'Reliable and intelligent character interactions' },
   { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B', cost: '$', roleplayRating: '8.0/10', description: 'Excellent free-tier roleplay option' }
 ];
+ res.json(models);
+});
 
 // Upload character
 app.post('/api/characters', async (req, res) => {
@@ -163,7 +165,6 @@ initDB().then(() => {
 }).catch(error => {
   console.error('Failed to start server:', error);
   process.exit(1);
-{ id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', cost: '$$$', roleplayRating: '9.5/10', description: 'Best overall for deep character roleplay' },
 
 // Upload character
 app.post('/api/characters', async (req, res) => {
