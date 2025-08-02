@@ -24,7 +24,6 @@ async function initDB() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS characters (
         id SERIAL PRIMARY KEY,
-        model_id INTEGER UNIQUE,
         name VARCHAR(100) NOT NULL,
         ethnicity VARCHAR(50),
         bible_personality JSONB,
@@ -149,7 +148,7 @@ app.get('/admin', (req, res) => {
 app.get('/api/characters', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT id, model_id, name, ethnicity, personality_traits, bible_personality, voice_profile
+      SELECT id, name, ethnicity, personality_traits, bible_personality, voice_profile
       FROM characters 
       ORDER BY created_at DESC
     `);
@@ -168,12 +167,11 @@ app.post('/api/characters', async (req, res) => {
     
     const result = await pool.query(`
       INSERT INTO characters (
-        model_id, name, ethnicity, bible_personality, 
+        name, ethnicity, bible_personality, 
         personality_traits, chat_behavior, voice_profile, ai_instructions
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `, [
-      characterData.model_id || null,
       characterData.name,
       characterData.ethnicity || null,
       JSON.stringify(characterData.bible_personality || {}),
