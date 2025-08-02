@@ -213,6 +213,13 @@
             </div>
 
             <div class="chat-input">
+                <select id="modelSelector" style="margin-right: 10px; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; background: white;">
+                    <option value="gryphe/mythomax-l2-13b">MythoMax L2 13B ($)</option>
+                    <option value="openai/gpt-4o" selected>GPT-4o ($)</option>
+                    <option value="meta-llama/llama-3.1-70b-instruct">Llama 3.1 70B ($)</option>
+                    <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet ($$)</option>
+                    <option value="anthropic/claude-3-opus">Claude 3 Opus ($$)</option>
+                </select>
                 <input 
                     type="text" 
                     class="input-field" 
@@ -289,7 +296,9 @@
         // Send message
         async function sendMessage() {
             const input = document.getElementById('messageInput');
+            const modelSelector = document.getElementById('modelSelector');
             const message = input.value.trim();
+            const selectedModel = modelSelector.value;
             
             if (!message || !currentCharacter) return;
             
@@ -311,14 +320,17 @@
                     body: JSON.stringify({
                         characterId: currentCharacter.id,
                         message: message,
-                        sessionId: sessionId
+                        sessionId: sessionId,
+                        model: selectedModel
                     })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    addMessage(data.response, 'assistant');
+                    const modelUsed = data.model_used || selectedModel;
+                    addMessage(`${data.response}`, 'assistant');
+                    console.log(`Used model: ${modelUsed}`);
                 } else {
                     addMessage('Sorry, I had trouble responding. Please try again.', 'assistant');
                 }
