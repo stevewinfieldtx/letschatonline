@@ -4,7 +4,11 @@ const path = require('path');
 const { Pool } = require('pg');
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const port = 
+  process.env.PORT || 8080;
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server running on port ${port}`);
+});
 
 // Database connection
 const pool = new Pool({
